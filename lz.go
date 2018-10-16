@@ -44,13 +44,13 @@ func NewFile(fi os.FileInfo) *File {
 }
 
 func (f *File) Name() string {
-	yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+	green := color.New(color.FgGreen, color.Bold).SprintFunc()
 	blue := color.New(color.FgBlue, color.Bold).SprintFunc()
 
 	if f.IsDir {
 		return fmt.Sprintf("%v/", blue(f.FileName))
 	} else if f.Executable {
-		return yellow(f.FileName)
+		return green(f.FileName)
 	} else {
 		return f.FileName
 	}
