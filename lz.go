@@ -5,7 +5,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
 	"sort"
+	"strconv"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -16,20 +19,25 @@ import (
 
 type File struct {
 	FileName   string
+	Mode       os.FileMode
 	Executable bool
 	IsDir      bool
-	ModTime    time.Time
-	Size       uint64
+	modTime    time.Time
+	size       uint64
+	User       string
 }
 
 func NewFile(fi os.FileInfo) *File {
 	file := &File{}
 
 	file.FileName = fi.Name()
+	file.Mode = fi.Mode()
 	file.Executable = fi.Mode()&0111 != 0
 	file.IsDir = fi.IsDir()
-	file.ModTime = fi.ModTime()
-	file.Size = uint64(fi.Size())
+	file.modTime = fi.ModTime()
+	file.size = uint64(fi.Size())
+	lookup, _ := user.LookupId(strconv.Itoa(int(fi.Sys().(*syscall.Stat_t).Uid)))
+	file.User = lookup.Username
 
 	return file
 }
@@ -44,17 +52,43 @@ func (f *File) Name() string {
 	}
 }
 
+func (f *File) ModTime() string {
+	return humanize.Time(f.modTime)
+}
+
+func (f *File) Size() string {
+	return humanize.IBytes(f.size)
+}
+
+func (f *File) Property(by SortBy) string {
+	if by == TIME {
+		return f.ModTime()
+	} else if by == SIZE {
+		return f.Size()
+	}
+
+	return ""
+}
+
 type Files []*File
 
-func (files Files) SortByTime() {
+func (files Files) Sort(by SortBy) {
+	if by == TIME {
+		files.sortByTime()
+	} else if by == SIZE {
+		files.sortBySize()
+	}
+}
+
+func (files Files) sortByTime() {
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].ModTime.After(files[j].ModTime)
+		return files[i].modTime.After(files[j].modTime)
 	})
 }
 
-func (files Files) SortBySize() {
+func (files Files) sortBySize() {
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].Size > files[j].Size
+		return files[i].size > files[j].size
 	})
 }
 
@@ -66,24 +100,18 @@ const (
 	SIZE
 )
 
-func (files Files) Sort(by SortBy, asc bool) {
-	var property func(*File) string
-
-	if by == TIME {
-		files.SortByTime()
-		property = func(f *File) string { return humanize.Time(f.ModTime) }
-	} else if by == SIZE {
-		files.SortBySize()
-		property = func(f *File) string { return humanize.IBytes(f.Size) }
-	}
-
-	if asc {
-		files.Reverse()
-	}
-
+func (files Files) PrintSorted(by SortBy) {
 	w := GetWriter()
 	for _, file := range files {
-		fmt.Fprintf(w, "%v\t%v\n", property(file), file.Name())
+		fmt.Fprintf(w, "%v\t%v\n", file.Property(by), file.Name())
+	}
+	w.Flush()
+}
+
+func (files Files) PrintLong() {
+	w := GetWriter()
+	for _, f := range files {
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n", f.Mode, f.User, f.Size(), f.ModTime(), f.Name())
 	}
 	w.Flush()
 }
@@ -116,13 +144,13 @@ func (files Files) Print() {
 	textcol.PrintColumns(&filenames, 4)
 }
 
-// -l long
-
 type Args struct {
-	t   *bool // sort by time
-	s   *bool // sort by size
-	r   *bool // reverse sort
-	dir *string
+	t      *bool // sort by time
+	s      *bool // sort by size
+	r      *bool // reverse sort
+	l      *bool // long
+	sortby SortBy
+	dir    *string
 }
 
 func initArgs() (args Args) {
@@ -130,8 +158,19 @@ func initArgs() (args Args) {
 	args.t = kingpin.Flag("time", "sort by modification time, newest first").Short('t').Bool()
 	args.s = kingpin.Flag("size", "sort by file size, largest first").Short('s').Bool()
 	args.r = kingpin.Flag("reverse", "reverse order while sorting").Short('r').Bool()
+	args.l = kingpin.Flag("long", "use long listing format").Short('l').Bool()
 	args.dir = kingpin.Arg("directory", "show information about directory").Default(".").String()
 	kingpin.Parse()
+
+	if *args.t && *args.s {
+		fmt.Println("-t and -s cannot be set at the same time.")
+		os.Exit(1)
+	} else if *args.t {
+		args.sortby = TIME
+	} else if *args.s {
+		args.sortby = SIZE
+	}
+
 	return
 }
 
@@ -142,22 +181,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *args.t && *args.s {
-		fmt.Println("-t and -s cannot be set at the same time.")
-		os.Exit(1)
-	}
-	var sortby SortBy = NONE
-	if *args.t {
-		sortby = TIME
-	} else if *args.s {
-		sortby = SIZE
-	}
-
 	files := FilesInit(directory)
 
-	if sortby == NONE {
-		files.Print()
+	files.Sort(args.sortby)
+	if *args.r {
+		files.Reverse()
+	}
+
+	if *args.l {
+		files.PrintLong()
+	} else if args.sortby != NONE {
+		files.PrintSorted(args.sortby)
 	} else {
-		files.Sort(sortby, *args.r)
+		files.Print()
 	}
 }
