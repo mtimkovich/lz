@@ -14,6 +14,7 @@ import (
 
 	"github.com/acarl005/textcol"
 	humanize "github.com/dustin/go-humanize"
+	"github.com/fatih/color"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -43,10 +44,13 @@ func NewFile(fi os.FileInfo) *File {
 }
 
 func (f *File) Name() string {
+	yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+	blue := color.New(color.FgBlue, color.Bold).SprintFunc()
+
 	if f.IsDir {
-		return f.FileName + "/"
+		return fmt.Sprintf("%v/", blue(f.FileName))
 	} else if f.Executable {
-		return f.FileName + "*"
+		return yellow(f.FileName)
 	} else {
 		return f.FileName
 	}
