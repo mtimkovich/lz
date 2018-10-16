@@ -86,13 +86,13 @@ func (files Files) Sort(by SortBy) {
 
 func (files Files) sortByTime() {
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].modTime.After(files[j].modTime)
+		return files[i].modTime.Before(files[j].modTime)
 	})
 }
 
 func (files Files) sortBySize() {
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].size > files[j].size
+		return files[i].size < files[j].size
 	})
 }
 
@@ -145,7 +145,7 @@ func (files Files) Print() {
 		filenames = append(filenames, file.Name())
 	}
 
-	textcol.PrintColumns(&filenames, 4)
+	textcol.PrintColumns(&filenames, 2)
 }
 
 type Args struct {
@@ -159,8 +159,8 @@ type Args struct {
 
 func initArgs() (args Args) {
 	kingpin.CommandLine.HelpFlag.Short('h')
-	args.t = kingpin.Flag("time", "sort by modification time, newest first").Short('t').Bool()
-	args.s = kingpin.Flag("size", "sort by file size, largest first").Short('s').Bool()
+	args.t = kingpin.Flag("time", "sort by modification time, oldest first").Short('t').Bool()
+	args.s = kingpin.Flag("size", "sort by file size, smallest first").Short('s').Bool()
 	args.r = kingpin.Flag("reverse", "reverse order while sorting").Short('r').Bool()
 	args.l = kingpin.Flag("long", "use long listing format").Short('l').Bool()
 	args.dir = kingpin.Arg("directory", "show information about directory").Default(".").String()
