@@ -5,7 +5,7 @@
 ## Installation
 
 ```
-$ go get github.com/mtimkovich/lz
+go get github.com/mtimkovich/lz
 ```
 
 ## Usage
