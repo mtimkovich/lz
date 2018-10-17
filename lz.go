@@ -88,12 +88,7 @@ func main() {
 	args := initArgs()
 
 	files := ParseFileArgs(*args.dirs)
-
-	// Sort the files
-	files.Sort(args.sortby)
-	if *args.r {
-		files.Reverse()
-	}
+	files.Sort(args.sortby, *args.r)
 
 	// Print info
 	if *args.l {
