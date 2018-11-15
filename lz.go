@@ -53,7 +53,10 @@ func initArgs() (args Args) {
 }
 
 func isDir(filename string) bool {
-	fi, _ := os.Stat(filename)
+	fi, err := os.Stat(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return fi.Mode().IsDir()
 }
 
