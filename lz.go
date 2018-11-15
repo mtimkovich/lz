@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -55,7 +54,7 @@ func initArgs() (args Args) {
 func isDir(filename string) bool {
 	fi, err := os.Stat(filename)
 	if err != nil {
-		log.Fatal(err)
+		fatal(err)
 	}
 	return fi.Mode().IsDir()
 }
@@ -69,7 +68,7 @@ func ParseFileArgs(fileArgs []string) Files {
 		var err error
 		fileInfos, err = ioutil.ReadDir(fileArgs[0])
 		if err != nil {
-			log.Fatal(err)
+			fatal(err)
 		}
 	} else {
 		// Otherwise, we have a list of files/directories.
@@ -85,6 +84,11 @@ func ParseFileArgs(fileArgs []string) Files {
 	}
 
 	return files
+}
+
+func fatal(a ...interface{}) {
+	fmt.Println(a...)
+	os.Exit(1)
 }
 
 func main() {
