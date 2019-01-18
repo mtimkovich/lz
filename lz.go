@@ -9,6 +9,8 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
+const VERSION = "v0.3"
+
 type SortBy int
 
 const (
@@ -28,6 +30,7 @@ type Args struct {
 
 func initArgs() (args Args) {
 	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.Version("lz " + VERSION)
 	args.t = kingpin.Flag("time", "sort by modification time, oldest first").
 		Short('t').Bool()
 	args.s = kingpin.Flag("size", "sort by file size, smallest first").
