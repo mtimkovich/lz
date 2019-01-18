@@ -73,11 +73,15 @@ func (f *File) Property(by SortBy) string {
 
 type Files []*File
 
-func (files Files) Sort(by SortBy) {
+func (files Files) Sort(by SortBy, reverse bool) {
 	if by == TIME {
 		files.sortByTime()
 	} else if by == SIZE {
 		files.sortBySize()
+	}
+
+	if reverse {
+		files.Reverse()
 	}
 }
 
